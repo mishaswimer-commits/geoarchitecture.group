@@ -54,7 +54,6 @@ def scan_projects():
 
 def generate_html(projects):
     """Генерирует защищенный, валидный и адаптивный HTML-файл портфолио."""
-    # JSON-сериализация с безопасным экранированием для защиты от XSS и поломки кавычек
     try:
         projects_json = json.dumps(projects, ensure_ascii=False)
     except Exception as e:
@@ -138,23 +137,24 @@ def generate_html(projects):
         }
         .close-btn:hover { background: var(--accent-hover); }
         
+        /* Исправленные стрелки навигации на фиксированных позициях по краям экрана */
         .nav-btn {
-            position: absolute;
+            position: fixed;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             color: white;
             border: none;
-            font-size: 24px;
-            padding: 15px 20px;
+            font-size: 32px;
+            padding: 20px 25px;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 8px;
             transition: background 0.2s ease;
-            z-index: 1010;
+            z-index: 1020;
         }
-        .nav-btn:hover { background: var(--accent-hover); }
-        .prev-btn { left: -70px; }
-        .next-btn { right: -70px; }
+        .nav-btn:hover { background: rgba(255, 255, 255, 0.3); }
+        .prev-btn { left: 30px; }
+        .next-btn { right: 30px; }
         
         .image-counter {
             position: absolute;
@@ -185,7 +185,6 @@ def generate_html(projects):
         html_content += '<p class="empty-notice">Проекты не найдены. Создайте папку <code>projects</code> и добавьте в неё подпапки с изображениями.</p>'
     else:
         for p_idx, proj in enumerate(projects):
-            # Безопасное экранирование имен в HTML
             safe_proj_name = html_escape(proj['name'])
             html_content += f"""
         <div class="project">
@@ -206,24 +205,22 @@ def generate_html(projects):
         </div>
 """
         
-    # Разметка модального окна
+    # Разметка модального окна с корректным выносом кнопок навигации
     html_content += """
     <!-- Модальное окно для просмотрщика -->
     <div id="lightbox" class="modal" role="dialog" aria-modal="true" onclick="handleModalClick(event)">
+        <button class="nav-btn prev-btn" onclick="changeImage(-1); event.stopPropagation();" title="Предыдущая (←)">&#10094;</button>
         <div class="modal-content-wrapper">
             <div class="close-btn" onclick="closeModal()" title="Закрыть (Esc)">&times;</div>
-            <button class="nav-btn prev-btn" onclick="changeImage(-1); event.stopPropagation();" title="Предыдущая (←)">&#10094;</button>
             <img id="lightbox-img" onclick="changeImage(1); event.stopPropagation();" title="Следующая (клик)" alt="Увеличенное изображение">
-            <button class="nav-btn next-btn" onclick="changeImage(1); event.stopPropagation();" title="Следующая (→)">&#10095;</button>
             <div id="image-counter" class="image-counter"></div>
         </div>
+        <button class="nav-btn next-btn" onclick="changeImage(1); event.stopPropagation();" title="Следующая (→)">&#10095;</button>
     </div>
 """
 
-    # Надежный JS-шаблон, инкапсулированный от ошибок парсинга Python
     script_template = """
     <script>
-        // Данные проектов переданы безопасно из Python
         const projectsData = __PROJECTS_JSON__;
 
         let currentProjectIndex = 0;
@@ -239,7 +236,6 @@ def generate_html(projects):
             modal.style.display = 'flex';
             updateModalImage();
             
-            // Блокируем скролл основной страницы
             document.body.style.overflow = 'hidden';
         }
 
@@ -255,7 +251,6 @@ def generate_html(projects):
             
             currentImageIndex += direction;
 
-            // Зацикливание галереи
             if (currentImageIndex < 0) {
                 currentImageIndex = images.length - 1;
             } else if (currentImageIndex >= images.length) {
@@ -276,19 +271,16 @@ def generate_html(projects):
             modalImg.src = imagePath;
             modalImg.alt = imageName;
 
-            // Обновляем счетчик
             const counter = document.getElementById('image-counter');
             counter.innerText = `${currentImageIndex + 1} / ${proj.images.length} — Проект: ${proj.name}`;
         }
 
-        // Закрытие по клику на темный фон
         function handleModalClick(event) {
             if (event.target.id === 'lightbox') {
                 closeModal();
             }
         }
 
-        // Управление с клавиатуры
         document.addEventListener('keydown', function(event) {
             const modal = document.getElementById('lightbox');
             if (modal && modal.style.display === 'flex') {
@@ -315,7 +307,6 @@ def generate_html(projects):
         print(f"[ERROR] Не удалось записать HTML-файл: {e}")
 
 def html_escape(text):
-    """Простейшая защита от поломки HTML кавычками в названиях папок/файлов."""
     return (text
         .replace("&", "&amp;")
         .replace('"', "&quot;")
